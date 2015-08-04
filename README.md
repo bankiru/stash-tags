@@ -1,2 +1,2 @@
 # stash-tags
-tedios/Stash/Item with tags support
+Stash\Item with tags support
