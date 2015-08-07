@@ -70,7 +70,9 @@ class TaggedItem extends Item
     protected function validateRecord($validation, &$record)
     {
         $expiration = ($_ = &$record['expiration']);
-        if (isset($record['data'], $record['data']['return'], $record['data']['return']['data'], $record['data']['return']['tags'])
+        if (isset($record['data'], $record['data']['return'])
+            && is_array($record['data']['return'])
+            && isset($record['data']['return']['data'], $record['data']['return']['tags'])
             && !empty($record['data']['return']['tags'])
         ) {
             $tags = $record['data']['return']['tags'];
