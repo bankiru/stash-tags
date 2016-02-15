@@ -80,7 +80,7 @@ class TaggedItem extends Item
      */
     public function clearByTags(array $tags)
     {
-        if (!$tags) {
+        if (0 === count($tags)) {
             return false;
         }
 
