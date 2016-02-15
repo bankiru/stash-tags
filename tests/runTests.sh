@@ -9,9 +9,11 @@ else
   ./vendor/bin/phpunit --verbose
 fi
 
-echo ''
-echo ''
-echo ''
-echo 'Testing for Coding Styling Compliance.'
-echo 'All code should follow PSR standards.'
-./vendor/bin/php-cs-fixer fix ./ -vv --dry-run --config-file=$(dirname $0)/../.php_cs
+if [[ "$TRAVIS_PHP_VERSION" != "hhvm" ]]; then
+    echo ''
+    echo ''
+    echo ''
+    echo 'Testing for Coding Styling Compliance.'
+    echo 'All code should follow PSR standards.'
+    ./vendor/bin/php-cs-fixer fix ./ -vv --dry-run --config-file=$(dirname $0)/../.php_cs
+fi

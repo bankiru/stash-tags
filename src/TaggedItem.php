@@ -1,5 +1,4 @@
 <?php
-
 namespace Bankiru\Stash;
 
 use Stash\Item;
