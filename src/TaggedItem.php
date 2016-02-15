@@ -120,7 +120,7 @@ class TaggedItem extends Item
             $record['expiration'] = $expiration;
         }
     }
-    
+
     /**
      * Mangles the name to deny intersection of tag keys & data keys.
      * Mangled tag names are NOT saved in memcache $combined[0] value,
@@ -134,7 +134,7 @@ class TaggedItem extends Item
      */
     private static function mangleTags(array $tags)
     {
-        return array_map(function($tag) { return __CLASS__ . '/' . static::VERSION . '/' . $tag; }, $tags);
+        return array_map(function ($tag) { return __CLASS__ . '/' . static::VERSION . '/' . $tag; }, $tags);
     }
 
     /**
