@@ -1,7 +1,6 @@
 <?php
 namespace Bankiru\Stash;
 
-use Stash\Invalidation;
 use Stash\Item;
 
 /**
@@ -9,59 +8,87 @@ use Stash\Item;
  */
 class TaggedItem extends Item
 {
-    use TagTools;
+    const VERSION    = '0.2';
+    const DATA_FIELD = '@@data@@';
+    const TAGS_FIELD = '@@tags@@';
+
+    /** @var string[] */
+    private $tags = [];
 
     /**
-     * @param array $tags
-     *
-     * @return bool
+     * @return string[]
      */
-    public function clearByTags(array $tags = [])
+    public function getTags()
     {
-        if (!$tags) {
-            return false;
-        }
-        /** @var Item $tagItem */
-        foreach ($this->getTags($tags) as $tagItem) {
-            $tagItem->clear();
-        }
-
-        return true;
+        return $this->tags;
     }
 
     /**
-     * @param mixed $data
-     * @param null  $ttl
-     * @param array $tags
-     *
-     * @return bool
+     * @param string[] $tags
+     * @return static
      */
-    public function set($data, $ttl = null, array $tags = [])
+    public function setTags($tags)
     {
-        $data = [
-            'data' => $data,
-            'tags' => iterator_to_array($this->getVersionedTags($tags)),
-        ];
+        $this->tags = $tags;
 
-        return parent::set($data, $ttl);
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function get($invalidation = Invalidation::PRECOMPUTE, $arg = null, $arg2 = null)
+    public function save()
     {
-        $data = parent::get($invalidation, $arg, $arg2);
+        $dataBackup = $this->data;
+
+        $this->data = [
+            static::DATA_FIELD => $dataBackup,
+            static::TAGS_FIELD => iterator_to_array($this->getVersionedTags($this->tags)),
+        ];
+
+        $result = parent::save();
+
+        $this->data = $dataBackup;
+
+        return $result;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get()
+    {
+        parent::get();
 
         if (
-            is_array($data)
-            && array_key_exists('data', $data)
-            && array_key_exists('tags', $data)
+            is_array($this->data)
+            && array_key_exists(static::DATA_FIELD, $this->data)
+            && array_key_exists(static::TAGS_FIELD, $this->data)
         ) {
-            $data = $data['data'];
+            $this->tags = array_keys($this->data[static::TAGS_FIELD]);
+            $this->data = $this->data[static::DATA_FIELD];
         }
 
-        return $data;
+        return $this->data;
+    }
+
+    /**
+     * @param array $tags
+     *
+     * @return bool
+     */
+    public function clearByTags(array $tags)
+    {
+        if (!$tags) {
+            return false;
+        }
+
+        /** @var Item $tagItem */
+        foreach ($this->getTagItems($tags) as $tagItem) {
+            $tagItem->clear();
+        }
+
+        return true;
     }
 
     /**
@@ -72,11 +99,11 @@ class TaggedItem extends Item
         $expiration = ($_ = &$record['expiration']);
         if (isset($record['data'], $record['data']['return'])
             && is_array($record['data']['return'])
-            && isset($record['data']['return']['data'], $record['data']['return']['tags'])
-            && !empty($record['data']['return']['tags'])
+            && isset($record['data']['return'][static::DATA_FIELD], $record['data']['return'][static::TAGS_FIELD])
+            && !empty($record['data']['return'][static::TAGS_FIELD])
         ) {
-            $tags = $record['data']['return']['tags'];
-            foreach ($this->getTags(array_keys($record['data']['return']['tags'])) as $tag => $tagItem) {
+            $tags = $record['data']['return'][static::TAGS_FIELD];
+            foreach ($this->getTagItems(array_keys($record['data']['return'][static::TAGS_FIELD])) as $tag => $tagItem) {
                 $tagVersion = $tagItem->get();
                 if ($tagVersion !== $tags[$tag]) {
                     unset($record['expiration']);
@@ -89,6 +116,85 @@ class TaggedItem extends Item
 
         if ($expiration !== null) {
             $record['expiration'] = $expiration;
+        }
+    }
+
+    /**
+     * Mangles the name to deny intersection of tag keys & data keys.
+     * Mangled tag names are NOT saved in memcache $combined[0] value,
+     * mangling is always performed on-demand (to same some space).
+     *
+     * @param string $tag Tag name to mangle.
+     *
+     * @return string Mangled tag name.
+     */
+    private static function mangleTag($tag)
+    {
+        return __CLASS__ . '/' . static::VERSION . '/' . $tag;
+    }
+
+    /**
+     * The same as mangleTag(), but mangles a list of tags.
+     *
+     * @see self::mangleTag
+     *
+     * @param array $tags Tags to mangle.
+     *
+     * @return array List of mangled tags.
+     */
+    private static function mangleTags(array $tags)
+    {
+        return array_map([__CLASS__, 'mangleTag'], $tags);
+    }
+
+    /**
+     * Generates a new unique identifier for tag version.
+     *
+     * @return string Globally (hopefully) unique identifier.
+     */
+    private static function generateNewTagVersion()
+    {
+        static $counter = 0;
+
+        return sha1(microtime() . getmypid() . uniqid('', true) . ++$counter);
+    }
+
+    /**
+     * Loads tags from cache and returns them with generator.
+     *
+     * @param array $tags
+     *
+     * @return \Generator|TaggedItem[]
+     */
+    private function getTagItems(array $tags)
+    {
+        $mangledTags       = self::mangleTags($tags);
+        $mangledTagsToTags = array_combine($mangledTags, $tags);
+        $iterator = $this->pool->getItems($mangledTags);
+        foreach ($iterator as $mangledTag => $tagItem) {
+            yield $mangledTagsToTags[$mangledTag] => $tagItem;
+        }
+    }
+
+    /**
+     * Loads tags versions from cache,
+     * generate new versions if not found in cache
+     * and returns them with generator.
+     *
+     * @param array $tags
+     * @return \Generator|string[]
+     */
+    private function getVersionedTags(array $tags)
+    {
+        /** @var Item $tagItem */
+        foreach ($this->getTagItems($tags) as $tag => $tagItem) {
+            $tagVersion = $tagItem->get();
+            if ($tagItem->isMiss()) {
+                $tagVersion = self::generateNewTagVersion();
+                $tagItem->set($tagVersion)->save();
+            }
+
+            yield $tag => $tagVersion;
         }
     }
 }
