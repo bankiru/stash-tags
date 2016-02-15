@@ -38,7 +38,6 @@ return Symfony\CS\Config\Config::create()
         'ereg_to_preg',
         'multiline_spaces_before_semicolon',
         'newline_after_open_tag',
-        'no_blank_lines_before_namespace',
         'ordered_use',
         'header_comment',
         'short_array_syntax',

@@ -1,4 +1,5 @@
 <?php
+
 namespace Bankiru\Stash\tests;
 
 use Bankiru\Stash\TaggedItem;
