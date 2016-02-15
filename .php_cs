@@ -26,11 +26,8 @@ if (file_exists(__DIR__ . '/.gitignore')) {
     }
 }
 
-//\Symfony\CS\Fixer\Contrib\HeaderCommentFixer::setHeader('@copyright Copyright (c) 2005-' . date('Y') . ' Banki.ru Technologies (http://www.banki.ru)');
-
 return Symfony\CS\Config\Config::create()
     ->setUsingCache(true)
-    ->setCacheFile(__DIR__ . DIRECTORY_SEPARATOR . basename(__FILE__) . '.cache')
     ->finder($finder)
     ->level(\Symfony\CS\FixerInterface::SYMFONY_LEVEL)
     ->fixers([

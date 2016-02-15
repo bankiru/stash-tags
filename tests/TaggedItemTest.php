@@ -1,12 +1,11 @@
 <?php
+
 namespace Bankiru\Stash\tests;
 
 use Bankiru\Stash\TaggedItem;
 use Stash\Driver\Ephemeral;
 use Stash\Interfaces\DriverInterface;
-use Stash\Interfaces\ItemInterface;
 use Stash\Pool;
-use Symfony\Component\VarDumper\VarDumper;
 
 /**
  * Class TaggedItemTest.
@@ -22,7 +21,7 @@ class TaggedItemTest extends \PHPUnit_Framework_TestCase
     protected function setUp()
     {
         $this->driver = new Ephemeral([]);
-        $this->pool = new Pool();
+        $this->pool   = new Pool();
         $this->pool->setDriver($this->driver);
         $this->pool->setItemClass('Bankiru\Stash\TaggedItem');
     }
@@ -41,7 +40,7 @@ class TaggedItemTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetGetTags()
     {
-        $item = new TaggedItem;
+        $item = new TaggedItem();
 
         $tags = [uniqid('test-tag-', true)];
 
@@ -126,7 +125,7 @@ class TaggedItemTest extends \PHPUnit_Framework_TestCase
         $item->set($value)->setTags($tags)->save();
 
         $tagToInvalidate = 'Bankiru\Stash\TaggedItem/' . TaggedItem::VERSION . '/' . $tags[0];
-        $tagItem = $this->pool->getItem($tagToInvalidate);
+        $tagItem         = $this->pool->getItem($tagToInvalidate);
         static::assertTrue($tagItem->isHit());
         $tagItem->set('INVALIDVERSION')->save();
 
@@ -238,5 +237,4 @@ class TaggedItemTest extends \PHPUnit_Framework_TestCase
 
         static::assertEquals(count($tags), $count);
     }
-
 }

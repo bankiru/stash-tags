@@ -1,4 +1,5 @@
 <?php
+
 namespace Bankiru\Stash;
 
 use Stash\Item;
@@ -25,6 +26,7 @@ class TaggedItem extends Item
 
     /**
      * @param string[] $tags
+     *
      * @return static
      */
     public function setTags($tags)
@@ -170,7 +172,7 @@ class TaggedItem extends Item
     {
         $mangledTags       = self::mangleTags($tags);
         $mangledTagsToTags = array_combine($mangledTags, $tags);
-        $iterator = $this->pool->getItems($mangledTags);
+        $iterator          = $this->pool->getItems($mangledTags);
         foreach ($iterator as $mangledTag => $tagItem) {
             yield $mangledTagsToTags[$mangledTag] => $tagItem;
         }
@@ -182,6 +184,7 @@ class TaggedItem extends Item
      * and returns them with generator.
      *
      * @param array $tags
+     *
      * @return \Generator|string[]
      */
     private function getVersionedTags(array $tags)
