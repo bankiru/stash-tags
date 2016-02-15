@@ -34,107 +34,6 @@ class TaggedItemTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @depends testConstruct
-     * @covers Bankiru\Stash\TaggedItem::setTags
-     * @covers Bankiru\Stash\TaggedItem::getTags
-     */
-    public function testSetGetTags()
-    {
-        $item = new TaggedItem();
-
-        $tags = [uniqid('test-tag-', true)];
-
-        static::assertInstanceOf('Bankiru\Stash\TaggedItem', $item->setTags($tags), 'TaggedItem->setTags MUST return self');
-        static::assertEquals($tags, $item->getTags(), 'Tags array are not equal');
-    }
-
-    /**
-     * @depends testSetGetTags
-     * @covers Bankiru\Stash\TaggedItem::save
-     */
-    public function testSaveWithoutTags()
-    {
-        $key   = uniqid('test/key/', true);
-        $value = uniqid('test-value-', true);
-
-        static::assertTrue($this->pool->getItem($key)->set($value)->save(), 'Driver class able to store data');
-
-        /** @var TaggedItem $item */
-        $item = $this->pool->getItem($key);
-        static::assertTrue($item->isHit());
-        static::assertEquals($value, $item->get());
-    }
-
-    /**
-     * @depends testSetGetTags
-     * @depends testSaveWithoutTags
-     * @covers Bankiru\Stash\TaggedItem::save
-     */
-    public function testSaveWithTags()
-    {
-        $key   = uniqid('test/key/', true);
-        $value = uniqid('test-value-', true);
-        $tags  = [uniqid('test-tag-', true), uniqid('test-tag-', true)];
-
-        /** @var TaggedItem $item */
-        $item = $this->pool->getItem($key);
-        $item->set($value)->setTags($tags);
-
-        static::assertTrue($item->save(), 'Driver class able to store data');
-
-        /** @var TaggedItem $item */
-        $item = $this->pool->getItem($key);
-        static::assertTrue($item->isHit());
-        static::assertEquals($value, $item->get());
-        static::assertEquals($tags, $item->getTags());
-    }
-
-    /**
-     * @depends testSaveWithTags
-     * @covers Bankiru\Stash\TaggedItem::clearByTags
-     */
-    public function testClearByTags()
-    {
-        $key   = uniqid('test/key/', true);
-        $value = uniqid('test-value-', true);
-        $tags  = [uniqid('test-tag-', true), uniqid('test-tag-', true)];
-
-        /** @var TaggedItem $item */
-        $item = $this->pool->getItem($key);
-        $item->set($value)->setTags($tags);
-
-        static::assertTrue($item->save(), 'Driver class able to store data');
-        static::assertFalse($item->clearByTags([]));
-        static::assertTrue($item->clearByTags([$tags[0]]));
-        static::assertTrue($this->pool->getItem($key)->isMiss());
-    }
-
-    /**
-     * @depends testSaveWithTags
-     * @covers Bankiru\Stash\TaggedItem::get
-     * @covers Bankiru\Stash\TaggedItem::validateRecord
-     */
-    public function testGetWithInvalidTagVersion()
-    {
-        $key   = uniqid('test/key/', true);
-        $value = uniqid('test-value-', true);
-        $tags  = [uniqid('test-tag-', true), uniqid('test-tag-', true)];
-
-        /** @var TaggedItem $item */
-        $item = $this->pool->getItem($key);
-        $item->set($value)->setTags($tags)->save();
-
-        $tagToInvalidate = 'Bankiru\Stash\TaggedItem/' . TaggedItem::VERSION . '/' . $tags[0];
-        $tagItem         = $this->pool->getItem($tagToInvalidate);
-        static::assertTrue($tagItem->isHit());
-        $tagItem->set('INVALIDVERSION')->save();
-
-        $item = $this->pool->getItem($key);
-        static::assertTrue($item->isMiss());
-    }
-
-    /**
-     * @covers Bankiru\Stash\TaggedItem::mangleTag
      * @covers Bankiru\Stash\TaggedItem::mangleTags
      */
     public function testMangleTag()
@@ -236,5 +135,106 @@ class TaggedItemTest extends \PHPUnit_Framework_TestCase
         }
 
         static::assertEquals(count($tags), $count);
+    }
+
+    /**
+     * @depends testConstruct
+     * @covers Bankiru\Stash\TaggedItem::setTags
+     * @covers Bankiru\Stash\TaggedItem::getTags
+     */
+    public function testSetGetTags()
+    {
+        $item = new TaggedItem();
+
+        $tags = [uniqid('test-tag-', true)];
+
+        static::assertInstanceOf('Bankiru\Stash\TaggedItem', $item->setTags($tags), 'TaggedItem->setTags MUST return self');
+        static::assertEquals($tags, $item->getTags(), 'Tags array are not equal');
+    }
+
+    /**
+     * @depends testSetGetTags
+     * @covers Bankiru\Stash\TaggedItem::save
+     */
+    public function testSaveWithoutTags()
+    {
+        $key   = uniqid('test/key/', true);
+        $value = uniqid('test-value-', true);
+
+        static::assertTrue($this->pool->getItem($key)->set($value)->save(), 'Driver class able to store data');
+
+        /** @var TaggedItem $item */
+        $item = $this->pool->getItem($key);
+        static::assertTrue($item->isHit());
+        static::assertEquals($value, $item->get());
+    }
+
+    /**
+     * @depends testSetGetTags
+     * @depends testSaveWithoutTags
+     * @depends testGetVersionedTags
+     * @covers Bankiru\Stash\TaggedItem::save
+     */
+    public function testSaveWithTags()
+    {
+        $key   = uniqid('test/key/', true);
+        $value = uniqid('test-value-', true);
+        $tags  = [uniqid('test-tag-', true), uniqid('test-tag-', true)];
+
+        /** @var TaggedItem $item */
+        $item = $this->pool->getItem($key);
+        $item->set($value)->setTags($tags);
+
+        static::assertTrue($item->save(), 'Driver class able to store data');
+
+        /** @var TaggedItem $item */
+        $item = $this->pool->getItem($key);
+        static::assertTrue($item->isHit());
+        static::assertEquals($value, $item->get());
+        static::assertEquals($tags, $item->getTags());
+    }
+
+    /**
+     * @depends testSaveWithTags
+     * @covers Bankiru\Stash\TaggedItem::clearByTags
+     */
+    public function testClearByTags()
+    {
+        $key   = uniqid('test/key/', true);
+        $value = uniqid('test-value-', true);
+        $tags  = [uniqid('test-tag-', true), uniqid('test-tag-', true)];
+
+        /** @var TaggedItem $item */
+        $item = $this->pool->getItem($key);
+        $item->set($value)->setTags($tags);
+
+        static::assertTrue($item->save(), 'Driver class able to store data');
+        static::assertFalse($item->clearByTags([]));
+        static::assertTrue($item->clearByTags([$tags[0]]));
+        static::assertTrue($this->pool->getItem($key)->isMiss());
+    }
+
+    /**
+     * @depends testSaveWithTags
+     * @covers Bankiru\Stash\TaggedItem::get
+     * @covers Bankiru\Stash\TaggedItem::validateRecord
+     */
+    public function testGetWithInvalidTagVersion()
+    {
+        $key   = uniqid('test/key/', true);
+        $value = uniqid('test-value-', true);
+        $tags  = [uniqid('test-tag-', true), uniqid('test-tag-', true)];
+
+        /** @var TaggedItem $item */
+        $item = $this->pool->getItem($key);
+        $item->set($value)->setTags($tags)->save();
+
+        $tagToInvalidate = 'Bankiru\Stash\TaggedItem/' . TaggedItem::VERSION . '/' . $tags[0];
+        $tagItem         = $this->pool->getItem($tagToInvalidate);
+        static::assertTrue($tagItem->isHit());
+        $tagItem->set('INVALIDVERSION')->save();
+
+        $item = $this->pool->getItem($key);
+        static::assertTrue($item->isMiss());
     }
 }
